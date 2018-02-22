@@ -22,6 +22,9 @@ type backend struct {
 	messages []*message
 }
 
+func (be *backend) LoginAnonymous() (smtp.User, error) {
+	return &user{be}, nil
+}
 func (be *backend) Login(username, password string) (smtp.User, error) {
 	if username != "username" || password != "password" {
 		return nil, errors.New("Invalid username or password")

@@ -24,6 +24,7 @@ type Server struct {
 	MaxRecipients     int
 	MaxIdleSeconds    int
 	MaxMessageBytes   int
+	RequireAuth       bool
 	AllowInsecureAuth bool
 	Debug             io.Writer
 
@@ -41,8 +42,9 @@ type Server struct {
 // New creates a new SMTP server.
 func NewServer(be Backend) *Server {
 	return &Server{
-		Backend: be,
-		caps:    []string{"PIPELINING", "8BITMIME"},
+		Backend:     be,
+		RequireAuth: true,
+		caps:        []string{"PIPELINING", "8BITMIME"},
 		auths: map[string]SaslServerFactory{
 			sasl.Plain: func(conn *Conn) sasl.Server {
 				return sasl.NewPlainServer(func(identity, username, password string) error {

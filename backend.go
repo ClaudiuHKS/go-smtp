@@ -7,6 +7,7 @@ import (
 // A SMTP server backend.
 type Backend interface {
 	// Authenticate a user.
+	LoginAnonymous() (User, error)
 	Login(username, password string) (User, error)
 }
 

@@ -188,8 +188,17 @@ func (c *Conn) handleMail(arg string) {
 		return
 	}
 	if c.msg == nil {
-		c.WriteResponse(502, "Please authenticate first.")
-		return
+		if c.server.RequireAuth {
+			c.WriteResponse(502, "Please authenticate first.")
+			return
+		}
+		user, err := c.server.Backend.LoginAnonymous()
+		if err != nil {
+			c.WriteResponse(502, fmt.Sprintf("Authentication error: %v", err))
+			return
+		}
+		c.SetUser(user)
+		c.msg = &message{}
 	}
 
 	// Match FROM, while accepting '>' as quoted pair and in double quoted strings
