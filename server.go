@@ -4,6 +4,8 @@ import (
 	"crypto/tls"
 	"errors"
 	"io"
+	"io/ioutil"
+	"log"
 	"net"
 	"sync"
 
@@ -27,6 +29,8 @@ type Server struct {
 	RequireAuth       bool
 	AllowInsecureAuth bool
 	Debug             io.Writer
+	InfoLog           *log.Logger
+	ErrorLog          *log.Logger
 
 	// The server backend.
 	Backend Backend
@@ -42,6 +46,8 @@ type Server struct {
 // New creates a new SMTP server.
 func NewServer(be Backend) *Server {
 	return &Server{
+		InfoLog:     log.New(ioutil.Discard, "", 0),
+		ErrorLog:    log.New(ioutil.Discard, "", 0),
 		Backend:     be,
 		RequireAuth: true,
 		caps:        []string{"PIPELINING", "8BITMIME"},
@@ -94,6 +100,8 @@ func (s *Server) handleConn(c *Conn) error {
 		s.locker.Unlock()
 	}()
 
+	s.InfoLog.Printf("%s: Accepted connection.\n", c.name())
+
 	c.greet()
 
 	for {
@@ -108,6 +116,7 @@ func (s *Server) handleConn(c *Conn) error {
 
 			c.handle(cmd, arg)
 		} else {
+			s.InfoLog.Printf("%s: Closing connection.\n", c.name())
 			if err == io.EOF {
 				return nil
 			}

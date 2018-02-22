@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/textproto"
 	"regexp"
@@ -62,6 +63,10 @@ func (c *Conn) init() {
 	}
 
 	c.text = textproto.NewConn(rwc)
+}
+
+func (c *Conn) name() string {
+	return c.conn.RemoteAddr().String()
 }
 
 // Commands are dispatched to the appropriate handler functions.
@@ -376,7 +381,7 @@ func (c *Conn) handleData(arg string) {
 	c.WriteResponse(354, "Go ahead. End your data with <CR><LF>.<CR><LF>")
 
 	c.msg.Reader = newDataReader(c)
-	err := c.User().Send(c.msg.From, c.msg.To, c.msg.Reader)
+	err := c.User().Send(c, c.msg.From, c.msg.To, c.msg.Reader)
 	io.Copy(ioutil.Discard, c.msg.Reader) // Make sure all the data has been consumed
 	if err != nil {
 		if smtperr, ok := err.(*smtpError); ok {
@@ -418,6 +423,10 @@ func (c *Conn) WriteResponse(code int, text ...string) {
 		c.text.PrintfLine("%v-%v", code, text[i])
 	}
 	c.text.PrintfLine("%v %v", code, text[len(text)-1])
+
+	if code >= 421 {
+		c.server.ErrorLog.Printf("%s error: %s\n", c.name(), text)
+	}
 }
 
 // Reads a line of input
@@ -427,6 +436,10 @@ func (c *Conn) ReadLine() (string, error) {
 	}
 
 	return c.text.ReadLine()
+}
+
+func (c *Conn) Logf(logger *log.Logger, format string, a ...interface{}) {
+	logger.Printf("%s: %s\n", c.name(), fmt.Sprintf(format, a...))
 }
 
 func (c *Conn) reset() {

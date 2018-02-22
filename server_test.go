@@ -36,7 +36,7 @@ type user struct {
 	backend *backend
 }
 
-func (u *user) Send(from string, to []string, r io.Reader) error {
+func (u *user) Send(c *smtp.Conn, from string, to []string, r io.Reader) error {
 	if b, err := ioutil.ReadAll(r); err != nil {
 		return err
 	} else {
